@@ -1,1 +1,5 @@
 .idea/
+annotations/
+images/
+reducingbias/
+__pycache__/

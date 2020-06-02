@@ -8,6 +8,7 @@ from sklearn.datasets import make_moons
 from numpy import linalg as LA
 from sklearn.preprocessing import StandardScaler
 
+
 def sign(y):
     """
     y       -- numpy array of shape (m,)
@@ -15,10 +16,11 @@ def sign(y):
     The sign function returns -1 if y < 0, 1 if x >= 0. nan is returned for nan inputs.
     """
     y_sign = np.sign(y)
-    y_sign[y_sign==0] = 1
+    y_sign[y_sign == 0] = 1
     return y_sign
 
-class RBF():
+
+class RBF:
     def __init__(self, gamma):
         """
         RBF kernel class.
@@ -42,17 +44,22 @@ class RBF():
         --------------------
             K       -- numpy array of shape (mx,my), kernel K(X,Y)
         """
-        mx,_ = X.shape
-        my,_ = Y.shape
-        K = np.zeros((mx,my))
+        mx, _ = X.shape
+        my, _ = Y.shape
+        K = np.zeros((mx, my))
 
         # Implementation starts from here
-        K = np.random.rand(mx,my)
+        for i in range(mx):
+            xi = X[i]
+            for j in range(my):
+                yj = Y[j]
+                K[i, j] += np.exp(-self.gamma * np.linalg.norm(xi - yj)**2)
         # Implementation ends from here
         return K
 
-class LinearSVM():
-    def __init__(self, lambda_ = 1., T = 500, fit_intercept = True):
+
+class LinearSVM:
+    def __init__(self, lambda_=1., T=500, fit_intercept = True):
         """
         Linear SVM class.
  
@@ -68,13 +75,13 @@ class LinearSVM():
         self.T = T
         self.fit_intercept = fit_intercept
 
-    def generate_features(self,X):
+    def generate_features(self, X):
         """
         Returns pre-processed input data
         """
         if self.fit_intercept:
             ones = np.ones((len(X),1))
-            return np.concatenate((X,ones),axis=1)
+            return np.concatenate((X, ones), axis=1)
         return X
 
     def objective(self, X, y, w):
@@ -93,9 +100,9 @@ class LinearSVM():
         """
         m,_ = X.shape
         hinge_loss = np.maximum(np.zeros(m), 1 - y * np.dot(X, w))
-        return self.lambda_ / 2 * np.dot(w,w) + 1./m * np.sum(hinge_loss)
+        return self.lambda_ / 2 * np.dot(w, w) + 1./m * np.sum(hinge_loss)
     
-    def fit(self,X,y,verbose = True):
+    def fit(self, X, y, verbose=True):
         """
         Finds the coefficients of a linear model that fits the target.
  
@@ -110,22 +117,28 @@ class LinearSVM():
             self    -- an instance of self
         """
         X_ = self.generate_features(X)
-        m,d = X_.shape
+        m, d = X_.shape
         obj_value = []          # keep a record of the objective per iteration
         self.w = np.zeros(d)    # keep a running average over updated weights
         theta = np.zeros(d)     # initialize theta
 
-        for t in range(1,self.T):
+        for t in range(1, self.T):
             # Implementation starts from here
-            w = np.random.rand(d)
+            w = ((1 / self.lambda_) * theta).reshape((1, 3))
+            i = np.random.choice(m, 1)
+            yi, xi = y[i], X_[i].reshape((3, 1))
+
+            if yi * w.dot(xi) < 1:
+                theta += (yi * xi).squeeze()
             # Implementation ends from here
 
             self.w = float(t-1)/t * self.w + 1./t * w           # update the average
+            self.w = self.w.squeeze()
             obj_value.append(self.objective(X_, y, self.w))     # compute objective function
 
         # debugging. 
-        if verbose :
-            plt.plot(range(1,self.T), obj_value, 'b-',label = 'Objective function')
+        if verbose:
+            plt.plot(range(1, self.T), obj_value, 'b-', label='Objective function')
             plt.title('SVM: Objective Function')
             plt.xlabel('iteration')
             plt.ylabel('objective function')
@@ -143,7 +156,7 @@ class LinearSVM():
         --------------------
             y       -- numpy array of shape (m,), predictions
         """
-        if (self.w is None):
+        if self.w is None:
             raise Exception("Fit function not implemented")
 
         X_ = self.generate_features(X)
@@ -162,15 +175,16 @@ class LinearSVM():
         --------------------
             y       -- numpy array of shape (m,), distance to the separating hyperplane
         """
-        if (self.w is None):
+        if self.w is None:
             raise Exception("Fit function not implemented")
 
         X_ = self.generate_features(X)
         y = np.dot(X_, self.w)
         return y
 
-class RBFSVM():
-    def __init__(self, gamma = 2, T = 500, lambda_= .01):
+
+class RBFSVM:
+    def __init__(self, gamma=2, T=500, lambda_=.01):
         """
         SVM class.
  
@@ -206,7 +220,7 @@ class RBFSVM():
         K_ = np.multiply(K_, K)
         return np.sum(alpha) - 0.5 * np.sum(K_)
     
-    def fit(self,X,y,verbose = True):
+    def fit(self, X, y, verbose=True):
         """
         Finds the coefficients of a RBF model that fits the target.
  
@@ -220,15 +234,22 @@ class RBFSVM():
         --------------------
             self    -- an instance of self
         """
-        m,d = X.shape
+        m, d = X.shape
         dual_obj = []               # keep a record of dual objective per iteration
-        K = self.RBF(X,X)           # generate the kernel matrix K(X,X)
+        K = self.RBF(X, X)           # generate the kernel matrix K(X,X)
         self.alpha = np.zeros(m)    # keep a running average over updated alpha
         beta = np.zeros(m)          # initialize beta
-        
-        for t in range(1,self.T):
+
+        for t in range(1, self.T):
             # Implementation starts from here
-            alpha = np.random.rand(m)
+            alpha = (1 / self.lambda_) * beta
+            i = np.random.choice(m, 1)
+            sum = 0
+            for j in range(m):
+                sum += alpha[j] * K[j, i]
+            sum *= y[i]
+            if sum < 1:
+                beta[i] += y[i]
             # Implementation ends from here
 
             self.alpha = float(t-1)/float(t) * self.alpha + 1./float(t) * alpha # update the average
@@ -239,8 +260,8 @@ class RBFSVM():
         self.alpha = self.alpha[index]           # store all non-zero coefficients
 
         # debugging
-        if verbose :
-            plt.plot(range(1,self.T), dual_obj, 'b-',label = 'Dual Objective function')
+        if verbose:
+            plt.plot(range(1,self.T), dual_obj, 'b-', label='Dual Objective function')
             plt.xlabel('iteration')
             plt.ylabel('dual objective function')
             plt.title('RBF SVM: Dual Objective Function')
@@ -258,11 +279,11 @@ class RBFSVM():
         --------------------
             y       -- numpy array of shape (m,), predictions
         """
-        if (self.alpha is None):
+        if self.alpha is None:
             raise Exception("Fit function not implemented")
 
         K = self.RBF(X, self.sv)
-        y = sign(np.dot(K,self.alpha))
+        y = sign(np.dot(K, self.alpha))
         return y
 
     def decision_function(self, X):
@@ -277,17 +298,18 @@ class RBFSVM():
         --------------------
             y       -- numpy array of shape (m,), distance to the decision boundary
         """
-        if (self.alpha is None):
+        if self.alpha is None:
             raise Exception("Fit function not implemented")
 
         K = self.RBF(X, self.sv)
-        y = np.dot(K,self.alpha)
+        y = np.dot(K, self.alpha)
         return y
+
 
 # Construct dataset. DO NOT change.
 X, y = make_moons(noise=0.3, random_state=0)
 # map 0 label to -1
-y[y==0] = -1
+y[y == 0] = -1
 X = StandardScaler().fit_transform(X)
 X_train, X_test, y_train, y_test = \
         train_test_split(X, y, test_size=.4, random_state=42)
@@ -306,7 +328,7 @@ print('Testing error of scikit-learn Linear SVM: %.3f' % (1-accuracy_score(y_tes
 # plt.show()
 
 # fit LinearSVM
-clf = LinearSVM(lambda_ = 1., T = 500)
+clf = LinearSVM(lambda_=1., T=500)
 clf.fit(X_train, y_train)
 y_pred = clf.predict(X_train)
 print('Training error of LinearSVM: %.3f' % (1-accuracy_score(y_train, y_pred)))
@@ -319,7 +341,7 @@ print('Testing error of LinearSVM: %.3f' % (1-accuracy_score(y_test, y_pred)))
 ########### Question 8 ###########
 
 # fit a RBF model using scikit-learn SVC
-clf = svm.SVC(kernel='rbf', C=1. , gamma = 2)
+clf = svm.SVC(kernel='rbf', C=1., gamma=2)
 clf.fit(X_train, y_train)
 y_pred = clf.predict(X_train)
 print('Training error of scikit-learn RBF SVM: %.3f' % (1-accuracy_score(y_train, y_pred)))
