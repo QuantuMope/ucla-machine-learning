@@ -61,17 +61,17 @@ class resnet_34(nn.Module):
 
 if __name__ == "__main__":
 
-    IMG_DATA_DIRECTORY = './testing_img_data'
-
-
     model = resnet_34()
-    
-    with open(IMG_DATA_DIRECTORY, 'rb') as f:
-        all_test_img_data = pickle.load(f)
 
+    IMG_DATA_DIRECTORY = './testing_img_data/preprocessed_testing_img_data.pkl'
+    all_test_img_data = np.load(IMG_DATA_DIRECTORY)
+    # with open(IMG_DATA_DIRECTORY, 'rb') as f:
+    #     all_test_img_data = pickle.load(f)
+    img_data = torch.from_numpy(all_test_img_data)
     count = 0
-    for image in all_test_img_data:
-        img = torch.from_numpy(image)
+    for img in img_data:
+        print("begin to generate embedding")
         rep = model(img)
-        torch.save(rep, '/Users/cheimu/ucla-machine-learning/project/PythonAPI/feature_embedding')
+        print("saving...")
+        torch.save(rep, './feature_embedding/')
         print(count+1)
