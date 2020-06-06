@@ -63,7 +63,7 @@ if __name__ == "__main__":
     FEATURE_DATA = "./feature_embedding.csv"
     IMG_DATA_DIRECTORY = './preprocessed_testing_img_data.pkl'
     TEST_DATA_DIRECTORY = "./preprocessed_testing_img_data_extremely_small.pkl"
-    OUTPUT_DIRECTORY = './feature_embedding.csv'
+    OUTPUT_DIRECTORY = './feature_embedding/'
     # features = np.load(FEATURE_DATA)
     # print(features.shape)
     # print(features)
@@ -83,7 +83,8 @@ if __name__ == "__main__":
         print("[{}] saving {}".format(i, img.shape))
         #with open(OUTPUT_DIRECTORY, 'ab') as f:
         #    pickle.dump(rep, f, protocol=pickle.HIGHEST_PROTOCOL)
-        np.savetxt(FEATURE_DATA, rep, delimiter=', ')
+        np.savetxt(OUTPUT_DIRECTORY+'{}.csv'.format(i), rep, delimiter=', ')
 
-    restored_testing_img = np.genfromtxt(FEATURE_DATA, delimiter=',', dtype=float)
-    print(restored_testing_img)
+    #restored_testing_img = np.genfromtxt(FEATURE_DATA, delimiter=',', dtype=float)
+    #OUTPUT_DIRECTORY_TEST = './feature_embedding_test.csv'
+    #np.savetxt(OUTPUT_DIRECTORY_TEST, restored_testing_img, delimiter=', ')
