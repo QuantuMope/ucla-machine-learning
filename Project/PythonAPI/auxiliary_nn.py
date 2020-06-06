@@ -7,6 +7,7 @@ from tensorflow.keras.layers import Dense, BatchNormalization, ReLU, Concatenate
 from tensorflow.keras.optimizers import Adam, SGD
 from sklearn.preprocessing import LabelEncoder
 
+# Input size: 1024
 
 LOAD_DIR = './model_weights/'
 BATCH_SIZE = 1111  # must be global as custom loss is staticmethod

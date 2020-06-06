@@ -3,6 +3,7 @@ import numpy as np
 import skimage.io as io
 import matplotlib.pyplot as plt
 import pylab
+import pickle
 
 
 """
@@ -92,12 +93,27 @@ for tr_img in train_imgIds:
     serialize it for your guys' usage. COCO API has a download method
     that may come in handy.
 """
-# loaded_imgs = coco_anns.loadImgs(training_set.keys())
-# test_image = loaded_imgs[0]  # just the first image
-# I = io.imread(test_image['coco_url'])
-# plt.imshow(I)
-# plt.axis('off')
-# plt.show()
+
+IMG_DATA_DIRECTORY = './testing_img_data'
+
+loaded_imgs = coco_anns.loadImgs(training_set.keys())
+
+print('Starting image data download')
+all_test_img_data = []
+for i, test_image in enumerate(loaded_imgs):
+    all_test_img_data.append(io.imread(test_image['coco_url']))
+    print('Downloading image {}...'.format(i + 1))
+print('Finished image data download')
+
+with open(IMG_DATA_DIRECTORY, 'wb') as f:
+    pickle.dump(all_test_img_data, f)
+
+"""
+    Once you serialize once, you can use the following code in a separate program.
+    
+    with open(IMG_DATA_DIRECTORY, 'rb') as f:
+        all_test_img_data = pickle.load(f)
+"""
 
 
 fig = plt.figure()

@@ -328,7 +328,7 @@ print('Testing error of scikit-learn Linear SVM: %.3f' % (1-accuracy_score(y_tes
 # plt.show()
 
 # fit LinearSVM
-clf = LinearSVM(lambda_=1., T=500)
+clf = LinearSVM(lambda_=2.0, T=500)
 clf.fit(X_train, y_train)
 y_pred = clf.predict(X_train)
 print('Training error of LinearSVM: %.3f' % (1-accuracy_score(y_train, y_pred)))
@@ -352,7 +352,7 @@ print('Testing error of scikit-learn RBF SVM: %.3f' % (1-accuracy_score(y_test, 
 # plt.show()
 
 # fit RBFSVM
-clf = RBFSVM()
+clf = RBFSVM(lambda_=2.0)
 clf.fit(X_train, y_train)
 y_pred = clf.predict(X_train)
 print('Training error of RBFSVM: %.3f' % (1-accuracy_score(y_train, y_pred)))
