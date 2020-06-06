@@ -94,20 +94,22 @@ for tr_img in train_imgIds:
     that may come in handy.
 """
 
-IMG_DATA_DIRECTORY = './testing_img_data'
-IMG_LABELS = './testing_img_labels'
+IMG_DATA_DIRECTORY = 'testing_img_data.pkl'
+IMG_LABELS = 'testing_img_labels.pkl'
 
 loaded_imgs = coco_anns.loadImgs(training_set.keys())
 
 print('Starting image data download')
 all_test_img_data = []
 for i, test_image in enumerate(loaded_imgs):
-    all_test_img_data.append(io.imread(test_image['coco_url']))
+    all_test_img_data.append(test_image['file_name'])
     print('Downloading image {}...'.format(i + 1))
 print('Finished image data download')
 
+print('Started serialization')
 with open(IMG_DATA_DIRECTORY, 'wb') as f:
-    pickle.dump(all_test_img_data, f)
+    pickle.dump(all_test_img_data, f, protocol=pickle.HIGHEST_PROTOCOL)
+print('Finished serialization')
 
 all_test_img_labels = [training_set[tr_img] for tr_img in train_imgIds]
 
@@ -116,7 +118,7 @@ with open(IMG_LABELS, 'wb') as f:
 
 """
     Once you serialize once, you can use the following code in a separate program.
-    
+
     with open(IMG_DATA_DIRECTORY, 'rb') as f:
         all_test_img_data = pickle.load(f)
     with open(IMG_LABELS, 'rb') as f:
