@@ -64,6 +64,7 @@ if __name__ == "__main__":
     model = resnet_34()
 
     IMG_DATA_DIRECTORY = './testing_img_data/preprocessed_testing_img_data.pkl'
+    OUTPUT_DIRECTORY = './feature_embedding'
     all_test_img_data = np.load(IMG_DATA_DIRECTORY)
     # with open(IMG_DATA_DIRECTORY, 'rb') as f:
     #     all_test_img_data = pickle.load(f)
@@ -73,5 +74,7 @@ if __name__ == "__main__":
         print("begin to generate embedding")
         rep = model(img)
         print("saving...")
-        torch.save(rep, './feature_embedding/')
+        with open(OUTPUT_DIRECTORY, 'wb') as f:
+            pickle.dump(all_test_img_data, f, protocol=pickle.HIGHEST_PROTOCOL)
+            pickle.dump(", ", f, protocol=pickle.HIGHEST_PROTOCOL)
         print(count+1)
