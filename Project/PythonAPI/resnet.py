@@ -64,13 +64,14 @@ if __name__ == "__main__":
     model = resnet_34()
 
     IMG_DATA_DIRECTORY = './testing_img_data/preprocessed_testing_img_data.pkl'
-    OUTPUT_DIRECTORY = './feature_embedding'
+    OUTPUT_DIRECTORY = './feature_embedding.csv'
     all_test_img_data = np.load(IMG_DATA_DIRECTORY)
     # with open(IMG_DATA_DIRECTORY, 'rb') as f:
     #     all_test_img_data = pickle.load(f)
-    img_data = torch.from_numpy(all_test_img_data)
+    #img_data = torch.from_numpy(all_test_img_data)
     count = 0
-    for img in img_data:
+    for img_data in all_test_img_data:
+        img = torch.from_numpy(img_data)
         print("begin to generate embedding")
         rep = model(img)
         print("saving...")
