@@ -55,36 +55,43 @@ def load_batch(dataset, batch_sz):
     n_batches = (len(dataset) + batch_sz - 1) // batch_sz
     for i in range(0, n_batches):
         yield i, dataset[i * batch_sz : (i + 1) * batch_sz]
-if __name__ == "__main__":
+IMG_DATA_DIRECTORY = './preprocessed_testing_img_data.pkl'
+TEST_DATA_DIRECTORY = "./preprocessed_testing_img_data_extremely_small.pkl"
+OUTPUT_DIRECTORY = './feature_embedding.csv'
+def extract_feature(dataset_dir, output_dir):
     if torch.cuda.is_available():
         device = "cuda:0"
     else:
         device = "cpu"
-    FEATURE_DATA = "./feature_embedding.csv"
-    IMG_DATA_DIRECTORY = './preprocessed_testing_img_data.pkl'
-    TEST_DATA_DIRECTORY = "./preprocessed_testing_img_data_extremely_small.pkl"
-    OUTPUT_DIRECTORY = './feature_embedding/'
-    # features = np.load(FEATURE_DATA)
-    # print(features.shape)
-    # print(features)
-    # exit(0)
+    os.system("rm -rf {}".format(output_dir))
     model = resnet_34().to(device)
-    all_test_img_data = np.load(TEST_DATA_DIRECTORY)
+    all_test_img_data = np.load(dataset_dir)
     print(all_test_img_data.shape)
-    # with open(IMG_DATA_DIRECTORY, 'rb') as f:
-    #     all_test_img_data = pickle.load(f)
     img_data = torch.from_numpy(all_test_img_data)
-    for i, img in load_batch(img_data, 10):
-        #img = torch.from_numpy(img_data)
-        # print("begin to generate embedding")
-        # img = img.unsqueeze(0).to(device)
+    for i, img in load_batch(img_data, 32):
         img = img.to(device)
-        rep = model(img).detach().numpy()
+        rep = model(img)
         print("[{}] saving {}".format(i, img.shape))
-        #with open(OUTPUT_DIRECTORY, 'ab') as f:
-        #    pickle.dump(rep, f, protocol=pickle.HIGHEST_PROTOCOL)
-        np.savetxt(OUTPUT_DIRECTORY+'{}.csv'.format(i), rep, delimiter=', ')
-
-    #restored_testing_img = np.genfromtxt(FEATURE_DATA, delimiter=',', dtype=float)
-    #OUTPUT_DIRECTORY_TEST = './feature_embedding_test.csv'
-    #np.savetxt(OUTPUT_DIRECTORY_TEST, restored_testing_img, delimiter=', ')
+        # append to previous data
+        with open(output_dir, 'ab') as fo:
+            data = rep.cpu().detach().numpy()
+            pickle.dump(data, fo)
+def format_output(output_dir):
+    data = []
+    with open(output_dir, 'rb') as f:
+        while True:
+            try:
+                x = pickle.load(f)
+                data.append(x)
+            except:
+                break
+    data = np.concatenate(data)
+    # over-write previous data
+    with open(output_dir, 'wb') as fo:
+        pickle.dump(data, fo)
+    loaded_data = np.load(output_dir)
+    assert(data.shape == loaded_data.shape)
+    print("Data validation passed :)")
+if __name__ == "__main__":
+    extract_feature(IMG_DATA_DIRECTORY, OUTPUT_DIRECTORY)
+    format_output(OUTPUT_DIRECTORY)
