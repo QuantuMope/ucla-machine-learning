@@ -7,16 +7,12 @@ label_keys = {'gender': 0, 'truck': 1, 'motorcycle': 2, 'tie': 3, 'backpack': 4,
               'handbag': 6, 'fork': 7, 'knife': 8, 'spoon': 9, 'cell phone': 10, 'teddy bear': 11}
 
 
-def one_hot_encode(raw_y):
-    train_y = np.zeros((len(raw_y), len(label_keys)))
-    for i, labels in enumerate(raw_y):
-        for label in labels:
-            if label == 'woman':
-                continue
-            elif label == 'man':
-                train_y[i, 0] = 1
-            else:
-                train_y[i, label_keys[label]] = 1
+def one_hot_encode(y):
+    train_y = np.zeros((len(y), len(label_keys)))
+    for i, labels in enumerate(y):
+        train_y[i, 0] = 1 if labels[0] == 'man' else 0
+        for label in labels[1:]:
+            train_y[i, label_keys[label]] = 1
     return train_y
 
 
