@@ -85,7 +85,7 @@ class BaselineNN:
         ax.set_ylim(0.4, 1.0)
         plt.xlabel('Training Set Gender Ratio')
         plt.ylabel('Predicted Gender Ratio')
-        plt.title('Bias analysis on MS-COCO MLC')
+        plt.title('Baseline NN Gender Bias analysis on MS-COCO MLC')
         ax.plot([0, 1], [0, 1], c='b')
         for i in range(11):
             pred_counts = pred_label_counts[i]
@@ -109,8 +109,8 @@ def main():
     y_test = np.load('data/y_test.npy')
 
     baseline_nn = BaselineNN(input_size=1024,
-                             # optimizer=tf.keras.optimizers.SGD(lr=0.0001, momentum=0.9),
-                             optimizer=tf.keras.optimizers.Adam(lr=0.00003),
+                             # optimizer=SGD(lr=0.0001, momentum=0.9),
+                             optimizer=Adam(lr=0.00003),
                              load_weights=False)
 
     baseline_nn.train_model(X_train, y_train, 64, 50)
