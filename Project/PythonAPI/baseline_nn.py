@@ -111,9 +111,9 @@ def main():
     baseline_nn = BaselineNN(input_size=1024,
                              # optimizer=SGD(lr=0.0001, momentum=0.9),
                              optimizer=Adam(lr=0.00003),
-                             load_weights=False)
+                             load_weights=True)
 
-    baseline_nn.train_model(X_train, y_train, 64, 50)
+    # baseline_nn.train_model(X_train, y_train, batch_size=64, epochs=50)
     # baseline_nn.evaluate(X_test, y_test)
     # pred_y = baseline_nn.predict(X_test)
 

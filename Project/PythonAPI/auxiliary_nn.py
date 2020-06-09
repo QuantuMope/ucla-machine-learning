@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import tensorflow as tf
-from tensorflow.math import log, reduce_sum
+from tensorflow.math import log, reduce_sum, reduce_mean
 from tensorflow.keras import Input, Model
 from tensorflow.keras.layers import Dense, BatchNormalization, ReLU, Concatenate
 from tensorflow.keras.optimizers import Adam, SGD
@@ -33,30 +33,31 @@ class AuxiliaryNN:
         hd = self._dense_batch_layer(64, hd)
 
         classification_output = Dense(12, activation='sigmoid')(hd)
-        expected_bias_output = Dense(1, activation='linear')(hd)
+        expected_bias_output = Dense(1, activation='sigmoid')(hd)
         outputs = Concatenate()([classification_output, expected_bias_output])
 
         model = Model(inputs, outputs)
         # custom loss needed here
         model.compile(loss=self._auxiliary_loss_function, optimizer=self.optimizer, metrics=['accuracy'])
 
+        print(model.summary())
+
         return model
 
     @staticmethod
     def _auxiliary_loss_function(true_y, pred_y):
-        # May result in problems due to large difference in scaling between
-        # classification and regression output
-        batch_size = true_y.shape[0]
         class_true_y = true_y[:, :-1]
         class_pred_y = pred_y[:, :-1]
         regre_true_y = true_y[:, -1]
         regre_pred_y = pred_y[:, -1]
 
         # cross-entropy loss
-        main_loss = -reduce_sum(class_true_y * log(class_pred_y))
-        # mean absolute loss
-        auxiliary_loss = reduce_sum(tf.abs(regre_true_y - regre_pred_y)) / batch_size
-        total_loss = main_loss + LAMBDA_ * auxiliary_loss
+        cce = tf.keras.losses.CategoricalCrossentropy()
+        abs = tf.keras.losses.MeanAbsoluteError()
+        main_loss = cce(class_true_y, class_pred_y)
+        # absolute loss
+        auxi_loss = abs(regre_true_y, regre_pred_y)
+        total_loss = main_loss + LAMBDA_ * auxi_loss
         return total_loss
 
     @staticmethod
@@ -68,8 +69,59 @@ class AuxiliaryNN:
         hd = ReLU()(hd)
         return hd
 
-    def train_model(self, train_x, train_y, batch_size, epochs):
-        self.model.fit(train_x, train_y, epochs=epochs, batch_size=batch_size, validation_split=0.1, shuffle=True)
+    def train_model(self, train_x, train_y, aux_x, batch_size, epochs):
+        self.train_bias = self._get_train_bias(train_y)
+        for epoch in range(epochs):
+            aux_y = self.predict(aux_x)
+            new_train_y = self.get_bias_diff(train_y, aux_y)
+            self.model.fit(train_x, new_train_y, epochs=1, batch_size=batch_size, shuffle=True)
+            pred_y = self.predict(train_x)[:, :-1]
+            pred_y[pred_y > 0.5] = 1.
+            pred_y[pred_y < 0.5] = 0.
+            error = 1 - np.mean(np.abs(pred_y - train_y))
+            print('accuracy: {}'.format(error))
+        self.model.save_weights(SAVE_DIR)
+
+    def _get_train_bias(self, train_y):
+        train_counts = {}
+        for entry in train_y:
+            key = str(entry)
+            if key not in train_counts:
+                locations = np.where((train_y == entry).all(axis=1))[0]
+                train_counts[key] = locations
+            else:
+                continue
+        return train_counts
+
+    def get_bias_diff(self, train_y, aux_y):
+        synth_counts = {}
+        synth_y = aux_y[:, :-1]
+        synth_y[synth_y > 0.50] = 1.
+        synth_y[synth_y < 0.50] = 0.
+        for entry in synth_y:
+            key = str(entry)
+            if key not in synth_counts:
+                locations = np.where((synth_y == entry).all(axis=1))[0]
+                synth_counts[key] = len(locations)
+            else:
+                continue
+
+        # Calculate bias difference
+        num_train = train_y.shape[0]
+        num_synth = synth_y.shape[0]
+        new_train_y = np.zeros((num_train, train_y.shape[1]+1), dtype=np.float64)
+        new_train_y[:, :-1] += train_y
+        for key in self.train_bias.keys():
+            true_loc = self.train_bias[key]
+            true_bias = len(true_loc) / num_train
+            if key in synth_counts:
+                synth_bias = synth_counts[key] / num_synth
+                bias_diff = true_bias - synth_bias
+                new_train_y[true_loc, -1] = bias_diff
+            else:
+                new_train_y[true_loc, -1] = true_bias
+
+        return new_train_y
 
     def evaluate(self, test_x, test_y):
         print(self.model.evaluate(test_x, test_y))
@@ -78,7 +130,7 @@ class AuxiliaryNN:
         return self.model.predict(x)
 
     def calculate_gender_bias(self, x, y):
-        pred_y = self.predict(x)
+        pred_y = self.predict(x)[:, :-1]
         pred_label_counts = {i: [0, 0] for i in range(11)}
         for entry in pred_y:
             pred_gender = 'man' if entry[0] > 0.5 else 'woman'
@@ -120,19 +172,29 @@ class AuxiliaryNN:
 
 LOAD_DIR = './aux_model_weights'
 SAVE_DIR = LOAD_DIR
-LAMBDA_ = 0.10  # auxiliary loss coefficient
+LAMBDA_ = 0.1  # auxiliary loss coefficient
 
 
 def main():
+    print(tf.executing_eagerly())
+    X_aux = np.load('synthesized_samples.pkl', allow_pickle=True)
     X_train = np.load('data/X_train.npy')
     X_test = np.load('data/X_test.npy')
     y_train = np.load('data/y_train.npy')
     y_test = np.load('data/y_test.npy')
 
     auxiliary_nn = AuxiliaryNN(input_size=1024,
-                               optimizer=tf.keras.optimizers.SGD(lr=0.0001, momentum=0.9),
-                               # optimizer=tf.keras.optimizers.Adam(lr=0.00003),
-                               load_weights=False)
+                               # optimizer=SGD(lr=0.00001, momentum=0.9),
+                               optimizer=Adam(lr=0.00003),
+                               load_weights=True)
+
+    # auxiliary_nn.train_model(X_train, y_train, X_aux, batch_size=64, epochs=50)
+
+    X = np.concatenate((X_train, X_test))
+    y = np.concatenate((y_train, y_test))
+
+    auxiliary_nn.calculate_gender_bias(X, y)
+    auxiliary_nn.calculate_gender_bias(X_train, y_train)
 
 
     print('break')
