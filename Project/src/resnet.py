@@ -19,6 +19,8 @@ import skimage.io as io
 import matplotlib.pyplot as plt
 import pylab
 import pickle
+
+
 def initLinear(linear, val = None):
     if val is None:
         fan = linear.in_features +  linear.out_features 
@@ -27,6 +29,8 @@ def initLinear(linear, val = None):
         spread = val
         linear.weight.data.uniform_(-spread,spread)
         linear.bias.data.uniform_(-spread,spread)
+
+
 class resnet_34(nn.Module):
     def __init__(self):
         super(resnet_34, self).__init__()
@@ -37,8 +41,11 @@ class resnet_34(nn.Module):
         self.dropout = nn.Dropout(.5)
         self.relu = nn.LeakyReLU()
         initLinear(self.linear)
+
     def base_size(self): return 512
+
     def rep_size(self): return 1024
+
     def forward(self, x):
         x = x.float()
         x = self.resnet.conv1(x)
@@ -51,13 +58,19 @@ class resnet_34(nn.Module):
         x = self.resnet.layer4(x)
         x = self.dropout2d(x)
         return self.dropout(self.relu(self.linear(x.view(-1, 7*7*self.base_size()))))
+
+
 def load_batch(dataset, batch_sz):
     n_batches = (len(dataset) + batch_sz - 1) // batch_sz
     for i in range(0, n_batches):
         yield i, dataset[i * batch_sz : (i + 1) * batch_sz]
+
+
 IMG_DATA_DIRECTORY = './preprocessed_testing_img_data.pkl'
 TEST_DATA_DIRECTORY = "./preprocessed_testing_img_data_extremely_small.pkl"
 OUTPUT_DIRECTORY = './feature_embedding.csv'
+
+
 def extract_feature(dataset_dir, output_dir):
     if torch.cuda.is_available():
         device = "cuda:0"
@@ -76,6 +89,8 @@ def extract_feature(dataset_dir, output_dir):
         with open(output_dir, 'ab') as fo:
             data = rep.cpu().detach().numpy()
             pickle.dump(data, fo)
+
+
 def format_output(output_dir):
     data = []
     with open(output_dir, 'rb') as f:
@@ -92,6 +107,8 @@ def format_output(output_dir):
     loaded_data = np.load(output_dir)
     assert(data.shape == loaded_data.shape)
     print("Data validation passed :)")
+
+
 if __name__ == "__main__":
     extract_feature(IMG_DATA_DIRECTORY, OUTPUT_DIRECTORY)
     format_output(OUTPUT_DIRECTORY)
