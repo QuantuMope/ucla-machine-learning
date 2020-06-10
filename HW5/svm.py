@@ -124,7 +124,7 @@ class LinearSVM:
 
         for t in range(1, self.T):
             # Implementation starts from here
-            w = ((1 / self.lambda_) * theta).reshape((1, 3))
+            w = ((1 / (self.lambda_ * t)) * theta).reshape((1, 3))
             i = np.random.choice(m, 1)
             yi, xi = y[i], X_[i].reshape((3, 1))
 
@@ -242,19 +242,18 @@ class RBFSVM:
 
         for t in range(1, self.T):
             # Implementation starts from here
-            alpha = (1 / self.lambda_) * beta
+            alpha = (1 / (self.lambda_ * t)) * beta
             i = np.random.choice(m, 1)
             sum = 0
             for j in range(m):
                 sum += alpha[j] * K[j, i]
-            sum *= y[i]
-            if sum < 1:
+            if y[i] * sum < 1:
                 beta[i] += y[i]
             # Implementation ends from here
 
             self.alpha = float(t-1)/float(t) * self.alpha + 1./float(t) * alpha # update the average
             dual_obj.append(self.dual_objective(K, y, self.alpha/y)) # evaluate the dual objective
-        
+
         index = (self.alpha != 0) 
         self.sv = X[index]                       # store all support vectors
         self.alpha = self.alpha[index]           # store all non-zero coefficients

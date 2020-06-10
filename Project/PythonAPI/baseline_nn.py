@@ -4,7 +4,6 @@ import tensorflow as tf
 from tensorflow.keras import Input, Model
 from tensorflow.keras.layers import Dense, BatchNormalization, ReLU
 from tensorflow.keras.optimizers import Adam, SGD
-import pickle
 
 
 class BaselineNN:
@@ -48,11 +47,28 @@ class BaselineNN:
         return hd
 
     def train_model(self, train_x, train_y, batch_size, epochs):
-        self.model.fit(train_x, train_y, epochs=epochs, batch_size=batch_size, validation_split=0.1, shuffle=True)
+        self.model.fit(train_x, train_y, epochs=epochs, batch_size=batch_size, validation_split=0.05, shuffle=True)
         self.model.save_weights(SAVE_DIR)
 
     def evaluate(self, test_x, test_y):
-        print(self.model.evaluate(test_x, test_y))
+        pred_y = self.predict(test_x)
+        pred_y[pred_y > 0.5] = 1.
+        pred_y[pred_y < 0.5] = 0.
+        label_diff = pred_y - test_y
+        partial_accuracy = 1 - np.mean(np.abs(label_diff))
+        print('Partial match accuracy: {}'.format(partial_accuracy))
+
+        num_instances = pred_y.shape[0]
+        all_zeros = np.zeros(pred_y.shape[1])
+        exact_matches = np.count_nonzero((label_diff == all_zeros).all(axis=1))
+        exact_math_ratio = exact_matches / num_instances
+        print('Exact match accuracy: {}'.format(exact_math_ratio))
+
+        actual_label_loc = np.where(test_y == 1)
+        actu_label = test_y[actual_label_loc]
+        pred_label = pred_y[actual_label_loc]
+        precision = pred_label.sum() / actu_label.sum()
+        print('Precision score: {}'.format(precision))
 
     def predict(self, x):
         return self.model.predict(x)
@@ -83,22 +99,32 @@ class BaselineNN:
         ax = fig.add_subplot(111)
         ax.set_xlim(0.4, 1.0)
         ax.set_ylim(0.4, 1.0)
-        plt.xlabel('Training Set Gender Ratio')
+        plt.xlabel('Data Set Gender Ratio')
         plt.ylabel('Predicted Gender Ratio')
         plt.title('Baseline NN Gender Bias analysis on MS-COCO MLC')
         ax.plot([0, 1], [0, 1], c='b')
+        ratios = []
         for i in range(11):
             pred_counts = pred_label_counts[i]
             true_counts = true_label_counts[i]
             pred_ratio = pred_counts[0] / sum(pred_counts)
             true_ratio = true_counts[0] / sum(true_counts)
+            ratios.append((pred_ratio, true_ratio))
             plt.scatter(true_ratio, pred_ratio)
             plt.text(true_ratio, pred_ratio, self.label_keys[i])
+
+        # Calculate average bias amplification.
+        bias_amplication = 0
+        for pred_ratio, true_ratio in ratios:
+            bias_amplication += abs(pred_ratio - true_ratio)
+
+        bias_amplication /= len(ratios)
+        print('Average bias amplication: {}'.format(bias_amplication))
 
         plt.show()
 
 
-LOAD_DIR = './model_weights'
+LOAD_DIR = './model_weights/model_weights'  # 50 epochs
 SAVE_DIR = LOAD_DIR
 
 
@@ -113,9 +139,10 @@ def main():
                              optimizer=Adam(lr=0.00003),
                              load_weights=True)
 
-    # baseline_nn.train_model(X_train, y_train, batch_size=64, epochs=50)
-    # baseline_nn.evaluate(X_test, y_test)
-    # pred_y = baseline_nn.predict(X_test)
+    # baseline_nn.train_model(X_train, y_train, batch_size=32, epochs=25)
+
+    baseline_nn.evaluate(X_train, y_train)
+    baseline_nn.evaluate(X_test, y_test)
 
     X = np.concatenate((X_train, X_test))
     y = np.concatenate((y_train, y_test))

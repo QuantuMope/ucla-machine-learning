@@ -1,2 +1,0 @@
-model_checkpoint_path: "aux_model_weights"
-all_model_checkpoint_paths: "aux_model_weights"

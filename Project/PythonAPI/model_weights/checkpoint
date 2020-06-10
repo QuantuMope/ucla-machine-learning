@@ -1,0 +1,2 @@
+model_checkpoint_path: "aux_model_weights_test"
+all_model_checkpoint_paths: "aux_model_weights_test"

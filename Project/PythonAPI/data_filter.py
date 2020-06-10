@@ -141,6 +141,7 @@ for term in bias_terms:
     ratio = counts[0] / sum(counts)
     plt.scatter(ratio, ratio)
     plt.text(ratio, ratio, term)
+    print('{} has gender bias ratio: {}'.format(term, ratio))
 
 plt.show()
 
