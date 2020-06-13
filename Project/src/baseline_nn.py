@@ -95,13 +95,14 @@ class BaselineNN:
                 else:
                     true_label_counts[one][1] += 1
 
+        hfont = {'fontname': 'Times New Roman'}
         fig = plt.figure()
         ax = fig.add_subplot(111)
         ax.set_xlim(0.4, 1.0)
         ax.set_ylim(0.4, 1.0)
-        plt.xlabel('Data Set Gender Ratio')
-        plt.ylabel('Predicted Gender Ratio')
-        plt.title('Baseline NN Gender Bias analysis on MS-COCO MLC')
+        plt.xlabel('Data Set Gender Ratio', size=12, **hfont)
+        plt.ylabel('Predicted Gender Ratio', size=12, **hfont)
+        plt.title('Baseline NN Gender Bias analysis on MS-COCO MLC', size=14, **hfont)
         ax.plot([0, 1], [0, 1], c='b')
         ratios = []
         for i in range(11):
@@ -111,7 +112,7 @@ class BaselineNN:
             true_ratio = true_counts[0] / sum(true_counts)
             ratios.append((pred_ratio, true_ratio))
             plt.scatter(true_ratio, pred_ratio)
-            plt.text(true_ratio, pred_ratio, self.label_keys[i])
+            plt.text(true_ratio, pred_ratio, self.label_keys[i], size=12, **hfont)
 
         # Calculate average bias amplification.
         bias_amplication = 0

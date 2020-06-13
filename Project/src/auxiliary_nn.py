@@ -73,7 +73,7 @@ class AuxiliaryNN:
         for epoch in range(epochs):
             aux_y = self.predict(aux_x)
             new_train_y = self.get_bias_diff(train_y, aux_y)
-            self.model.fit(train_x, new_train_y, epochs=1, batch_size=batch_size, validation_split=0.1, shuffle=True)
+            self.model.fit(train_x, new_train_y, epochs=1, batch_size=batch_size, shuffle=True)
             print('Epoch: {}'.format(epoch+1))
         self.model.save_weights(SAVE_DIR)
 
@@ -163,13 +163,14 @@ class AuxiliaryNN:
                 else:
                     true_label_counts[one][1] += 1
 
+        hfont = {'fontname': 'Times New Roman'}
         fig = plt.figure()
         ax = fig.add_subplot(111)
         ax.set_xlim(0.4, 1.0)
         ax.set_ylim(0.4, 1.0)
-        plt.xlabel('Data Set Gender Ratio')
-        plt.ylabel('Predicted Gender Ratio')
-        plt.title('Auxiliary NN Gender Bias analysis on MS-COCO MLC')
+        plt.xlabel('Data Set Gender Ratio', size=12, **hfont)
+        plt.ylabel('Predicted Gender Ratio', size=12, **hfont)
+        plt.title('Auxiliary NN Gender Bias analysis on MS-COCO MLC', size=14, **hfont)
         ax.plot([0, 1], [0, 1], c='b')
         ratios = []
         for i in range(11):
@@ -179,7 +180,7 @@ class AuxiliaryNN:
             true_ratio = true_counts[0] / sum(true_counts)
             ratios.append((pred_ratio, true_ratio))
             plt.scatter(true_ratio, pred_ratio)
-            plt.text(true_ratio, pred_ratio, self.label_keys[i])
+            plt.text(true_ratio, pred_ratio, self.label_keys[i], size=12, **hfont)
 
         # Calculate average bias amplification.
         bias_amplication = 0
@@ -205,11 +206,11 @@ def main():
     y_test = np.load('data/y_test.npy')
 
     auxiliary_nn = AuxiliaryNN(input_size=1024,
-                               # optimizer=SGD(lr=0.00001, momentum=0.9),
+                               # optimizer=SGD(lr=0.0003, momentum=0.9),
                                optimizer=Adam(lr=0.00003),
                                load_weights=True)
 
-    # auxiliary_nn.train_model(X_train, y_train, X_aux, batch_size=32, epochs=35)
+    # auxiliary_nn.train_model(X_train, y_train, X_aux, batch_size=64, epochs=15)
 
     auxiliary_nn.evaluate(X_train, y_train)
     auxiliary_nn.evaluate(X_test, y_test)
